@@ -18,3 +18,11 @@ export interface ChatResponse {
   preventive_measures: string;
 }
 export type chatResponse = z.infer<typeof chatResponseSchema>;
+export interface IChatMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+export enum IncidentRequestType {
+  INITIAL_ANALYSIS = 'INITIAL_ANALYSIS',
+  FOLLOW_UP = 'FOLLOW_UP',
+}
