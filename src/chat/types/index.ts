@@ -1,46 +1,20 @@
+import z from 'zod';
+import { chatResponseSchema } from '../Schemas/chat-validation.schema';
+
+export interface NvidiaResponse {
+  choices: Array<{
+    message: {
+      role: string;
+      content: string;
+      reasoning?: string;
+    };
+  }>;
+}
 export interface ChatResponse {
-  id: string;
-  choices: Choice[];
-  created: number;
-  model: string;
-  service_tier: any;
-  system_fingerprint: any;
-  object: string;
-  usage: Usage;
-  nvext: Nvext;
+  severity: 'low' | 'medium' | 'high';
+  root_cause: string;
+  explanation: string;
+  recommendation: string;
+  preventive_measures: string;
 }
-
-export interface Choice {
-  index: number;
-  message: Message;
-  finish_reason: string;
-  logprobs: any;
-}
-
-export interface Message {
-  content: string;
-  role: string;
-  reasoning_content: string;
-}
-
-export interface Usage {
-  prompt_tokens: number;
-  completion_tokens: number;
-  total_tokens: number;
-}
-
-export interface Nvext {
-  scheduler_snapshot: SchedulerSnapshot;
-  request_throughput: RequestThroughput;
-}
-
-export interface SchedulerSnapshot {
-  num_running_reqs: number;
-  num_waiting_reqs: number;
-}
-
-export interface RequestThroughput {
-  e2e_latency_seconds: number;
-  generation_tokens_per_second: number;
-  draft_tokens_per_second: number;
-}
+export type chatResponse = z.infer<typeof chatResponseSchema>;
