@@ -1,42 +1,47 @@
 import { Injectable } from '@nestjs/common';
 import { sendRequest } from 'src/CORE/POST/sendMessage';
-import { ChatResponse } from '../types';
+import { ChatMemoryService } from './chat-memory.service';
+import { IChatMessage, IncidentRequestType } from '../types';
 
 @Injectable()
 export class ChatService {
-  async getChatResponse(incident: string): Promise<ChatResponse> {
-    const prompt = `
-You are a senior backend engineer specialized in:
+  constructor(private readonly chatMemoryService: ChatMemoryService) {}
+  async getChatHistory(userId: string) {
+    return this.chatMemoryService.getHistory(userId);
+  }
+  async getChatResponse(userId: string, userMessage: string) {
+    const history = await this.chatMemoryService.getHistory(userId);
+    const newMessage = { role: 'user' as const, content: userMessage };
+    const isFirstMessage = history.length === 0;
+    const requestType = isFirstMessage
+      ? IncidentRequestType.INITIAL_ANALYSIS
+      : IncidentRequestType.FOLLOW_UP;
 
-- NestJS
-- Node.js
-- Express.js
-- Next.js
-- TypeScript
-- MongoDB
-- PostgreSQL
-- Redis
-- Distributed Systems
+    const prompt = isFirstMessage
+      ? `You are a senior backend engineer specialized in NestJS, Node.js, Next.js, TypeScript, MongoDB, PostgreSQL, Redis, and Distributed Systems.
+Analyse the provided incident/code accurately. Do not invent information that is not supported by the input. If uncertain, state it clearly.`
+      : `You are a senior backend engineer. Answer the user's follow-up questions clearly and concisely using Markdown and code blocks where appropriate based on the previous incident analysis context.`;
+    const systemPrompt: IChatMessage = { role: 'system', content: prompt };
+    const fullMessages = [systemPrompt, ...history, newMessage];
 
-Analyze the following production incident.
+    const result = await sendRequest(fullMessages, requestType);
 
-Incident:
-${incident}
-
-Determine:
-
-1. Severity
-2. Root cause
-3. Detailed explanation
-4. Recommendations
-5. Preventive measures
-
-Do not invent information that is not supported by the incident.
-If the root cause cannot be determined with certainty, clearly state the uncertainty.
-`;
-
-    const data = await sendRequest(prompt);
-
-    return data;
+    let assistantResponse = ``;
+    if (result.type === IncidentRequestType.INITIAL_ANALYSIS) {
+      assistantResponse = `[Analysis Summary]
+- Severity: ${result.data.severity}
+- Root Cause: ${result.data.root_cause}
+- Explanation: ${result.data.explanation}
+- Recommendation: ${result.data.recommendation}
+- Preventive Measures: ${result.data.preventive_measures}`;
+    } else {
+      assistantResponse = result?.data?.text;
+    }
+    await this.chatMemoryService.addMessage(userId, newMessage);
+    await this.chatMemoryService.addMessage(userId, {
+      role: 'assistant',
+      content: assistantResponse,
+    });
+    return result;
   }
 }

@@ -6,6 +6,12 @@ export enum sortOrder {
   Asc = `ASC`,
 }
 
+export enum Sort {
+  Title = `title`,
+  CreatedAt = `createdAt`,
+  UpdatedAt = `updatedAt`,
+}
+
 export class GeneralQueryDto {
   @IsOptional()
   @IsPositive()

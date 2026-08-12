@@ -7,6 +7,9 @@ import { ServeStaticModule } from '@nestjs/serve-static';
 import { join } from 'path';
 import { MongooseModule } from '@nestjs/mongoose';
 import { UserModule } from './user/user.module';
+import { JwtModule } from '@nestjs/jwt';
+import { APP_FILTER } from '@nestjs/core';
+import { GlobalExceptionFilter } from './shared/filters/log.filter';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -20,8 +23,18 @@ import { UserModule } from './user/user.module';
     }),
     MongooseModule.forRoot(process.env.MONGODB_URI!),
     UserModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET!,
+      global: true,
+    }),
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    {
+      provide: APP_FILTER,
+      useClass: GlobalExceptionFilter,
+    },
+  ],
 })
 export class AppModule {}

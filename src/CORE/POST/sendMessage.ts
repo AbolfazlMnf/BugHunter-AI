@@ -1,15 +1,18 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { InternalServerErrorException } from '@nestjs/common';
 import axios from 'axios';
 import { chatResponseSchema } from 'src/chat/Schemas/chat-validation.schema';
-import { IChatMessage, IncidentRequestType } from 'src/chat/types';
+import {
+  ChatResponse,
+  IChatMessage,
+  IncidentRequestType,
+  NvidiaResponse,
+} from 'src/chat/types';
 const stream = false;
 
 export const sendRequest = async (
   messages: IChatMessage[],
   incidentType: IncidentRequestType = IncidentRequestType.INITIAL_ANALYSIS,
-) => {
+): Promise<ChatResponse> => {
   const apiKey = process.env.NVIDIA_API_KEY;
   const invokeUrl = process.env.INVOKE_URL;
 
@@ -32,6 +35,7 @@ export const sendRequest = async (
     top_p: 0.95,
   };
   if (incidentType === IncidentRequestType.INITIAL_ANALYSIS) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     payload.response_format = {
       type: 'json_schema',
       json_schema: {
@@ -75,11 +79,12 @@ export const sendRequest = async (
     };
   }
   try {
-    const response = await axios.post(invokeUrl, payload, {
+    const res = await axios.post(invokeUrl, payload, {
       headers: headers,
       responseType: stream ? 'stream' : 'json',
     });
-    const content = response.data.choices[0]?.message?.content;
+    const response = res.data as NvidiaResponse;
+    const content = response.choices?.[0]?.message?.content;
     if (!content) {
       throw new InternalServerErrorException('No content received from AI');
     }

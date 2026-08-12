@@ -10,14 +10,28 @@ export interface NvidiaResponse {
     };
   }>;
 }
-export interface ChatResponse {
+
+export type AnalysisData = {
   severity: 'low' | 'medium' | 'high';
   root_cause: string;
   explanation: string;
   recommendation: string;
   preventive_measures: string;
-}
-export type chatResponse = z.infer<typeof chatResponseSchema>;
+};
+
+export type FollowUpData = {
+  text: string;
+};
+
+export type ChatResponse =
+  | {
+      type: IncidentRequestType.INITIAL_ANALYSIS;
+      data: AnalysisData;
+    }
+  | {
+      type: IncidentRequestType.FOLLOW_UP;
+      data: FollowUpData;
+    };
 export interface IChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;

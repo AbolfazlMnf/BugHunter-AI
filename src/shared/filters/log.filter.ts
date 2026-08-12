@@ -7,7 +7,6 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AppService } from 'src/app.service';
-import { LogType } from '../schemas/log.schema';
 import { MongoServerError } from 'mongodb';
 
 @Catch()
@@ -40,15 +39,15 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       };
     }
 
-    try {
-      await this.appService.addLog({
-        type: LogType.Error,
-        url: request.url,
-        content: JSON.stringify(body),
-      });
-    } catch (err) {
-      console.log(`LogError`, err);
-    }
+    // try {
+    //   await this.appService.addLog({
+    //     type: LogType.Error,
+    //     url: request.url,
+    //     content: JSON.stringify(body),
+    //   });
+    // } catch (err) {
+    //   console.log(`LogError`, err);
+    // }
 
     response.status(status).send(body);
   }
