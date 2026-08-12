@@ -9,30 +9,30 @@ export class ChatMemoryService {
 
   constructor(private readonly redisService: RedisService) {}
 
-  private getKey(userId: string): string {
-    return `bug_detective:history:${userId}`;
+  private getKey(memoryKey: string): string {
+    return `bug_detective:history:${memoryKey}`;
   }
 
-  async addMessage(userId: string, message: IChatMessage): Promise<void> {
+  async addMessage(memoryKey: string, message: IChatMessage): Promise<void> {
     const client = this.redisService.getClient();
-    const key = this.getKey(userId);
+    const key = this.getKey(memoryKey);
 
     await client.rpush(key, JSON.stringify(message));
 
     await client.expire(key, this.TTL_SECONDS);
   }
 
-  async getHistory(userId: string): Promise<IChatMessage[]> {
+  async getHistory(memoryKey: string): Promise<IChatMessage[]> {
     const client = this.redisService.getClient();
-    const key = this.getKey(userId);
+    const key = this.getKey(memoryKey);
 
     const rawMessages = await client.lrange(key, -this.MAX_HISTORY, -1);
 
     return rawMessages.map((msg) => JSON.parse(msg) as IChatMessage);
   }
 
-  async clearHistory(userId: string): Promise<void> {
+  async clearHistory(memoryKey: string): Promise<void> {
     const client = this.redisService.getClient();
-    await client.del(this.getKey(userId));
+    await client.del(this.getKey(memoryKey));
   }
 }

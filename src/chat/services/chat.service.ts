@@ -1,16 +1,36 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { sendRequest } from 'src/CORE/POST/sendMessage';
 import { ChatMemoryService } from './chat-memory.service';
 import { IChatMessage, IncidentRequestType } from '../types';
-
+import { v4 as uuidv4 } from 'uuid';
 @Injectable()
 export class ChatService {
   constructor(private readonly chatMemoryService: ChatMemoryService) {}
-  async getChatHistory(userId: string) {
-    return this.chatMemoryService.getHistory(userId);
+  generateMemoryKey(userId: string, sessionId: string): string {
+    return `${userId}:${sessionId}`;
   }
-  async getChatResponse(userId: string, userMessage: string) {
-    const history = await this.chatMemoryService.getHistory(userId);
+
+  async getChatHistory(memoryKey: string) {
+    const history = await this.chatMemoryService.getHistory(memoryKey);
+    if (!history || history.length === 0) {
+      throw new NotFoundException('No chat history found.');
+    }
+    return history;
+  }
+
+  async clearChatHistory(userId: string, sessionId: string) {
+    const memoryKey = this.generateMemoryKey(userId, sessionId);
+    await this.chatMemoryService.clearHistory(memoryKey);
+  }
+
+  async getChatResponse(
+    userId: string,
+    sessionId: string | undefined,
+    userMessage: string,
+  ) {
+    const activeSessionId = sessionId || uuidv4();
+    const memoryKey = this.generateMemoryKey(userId, activeSessionId);
+    const history = await this.getChatHistory(memoryKey);
     const newMessage = { role: 'user' as const, content: userMessage };
     const isFirstMessage = history.length === 0;
     const requestType = isFirstMessage
@@ -37,11 +57,11 @@ Analyse the provided incident/code accurately. Do not invent information that is
     } else {
       assistantResponse = result?.data?.text;
     }
-    await this.chatMemoryService.addMessage(userId, newMessage);
-    await this.chatMemoryService.addMessage(userId, {
+    await this.chatMemoryService.addMessage(memoryKey, newMessage);
+    await this.chatMemoryService.addMessage(memoryKey, {
       role: 'assistant',
       content: assistantResponse,
     });
-    return result;
+    return { ...result, sessionId: activeSessionId };
   }
 }
