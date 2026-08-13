@@ -10,6 +10,7 @@ import { UserModule } from './user/user.module';
 import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from './shared/filters/log.filter';
+import { ProjectsModule } from './projects/projects.module';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -27,6 +28,7 @@ import { GlobalExceptionFilter } from './shared/filters/log.filter';
       secret: process.env.JWT_SECRET!,
       global: true,
     }),
+    ProjectsModule,
   ],
   controllers: [AppController],
   providers: [
