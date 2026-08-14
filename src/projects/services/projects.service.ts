@@ -2,9 +2,15 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import * as unzipper from 'unzipper';
 import { IProjectFile } from '../types/project-file.type';
 import { ALLOWED_FILE_EXTENSIONS } from '../constants/project-files.constants';
+import { FileTypeService } from './file-type.service';
+import { FileLanguageService } from './file-language.service';
 
 @Injectable()
 export class ProjectsService {
+  constructor(
+    private readonly fileTypeService: FileTypeService,
+    private readonly fileLanguageService: FileLanguageService,
+  ) {}
   private readonly ignoredDirectories = [
     'node_modules/',
     '.git/',
@@ -34,10 +40,17 @@ export class ProjectsService {
         continue;
       }
 
-      const content = entry.buffer();
+      const content = await entry.buffer();
+      const language =
+        this.fileLanguageService.getProjectLanguage(normalizedPath);
+      const type = this.fileTypeService.projectType(normalizedPath);
+
       projectFiles.push({
         path: normalizedPath,
-        content: (await content).toString(`utf-8`),
+        content: content.toString(`utf-8`),
+        language,
+        type,
+        size: content.length,
       });
     }
     return projectFiles;
