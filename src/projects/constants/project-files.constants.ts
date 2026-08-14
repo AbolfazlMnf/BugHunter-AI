@@ -1,0 +1,16 @@
+export const ALLOWED_FILE_EXTENSIONS = [
+  '.ts',
+  '.tsx',
+  '.js',
+  '.jsx',
+  '.mjs',
+  '.cjs',
+  '.json',
+  '.md',
+  '.yaml',
+  '.yml',
+  '.html',
+  '.css',
+  '.scss',
+  '.env.example',
+] as const;
