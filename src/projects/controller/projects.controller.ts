@@ -15,12 +15,19 @@ import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
 import { JwtGuard } from 'src/shared/guards/jwt.guard';
 import { UploadProjectDto } from '../dtos/upload-project.dto';
 import { ProjectsService } from '../services/projects.service';
+import { ChunkFileService } from '../services/chunk-file.service';
+import { EmbeddingFileService } from '../services/embedding-file.service';
+import { EmbeddingInputType } from 'src/CORE/POST/embedding';
 
 @Controller('projects')
 @ApiBearerAuth()
 @UseGuards(JwtGuard)
 export class ProjectsController {
-  constructor(private readonly projectsService: ProjectsService) {}
+  constructor(
+    private readonly projectsService: ProjectsService,
+    private readonly chunkFileService: ChunkFileService,
+    private readonly embeddingFileService: EmbeddingFileService,
+  ) {}
 
   @Post(`upload-file-zip`)
   @ApiConsumes(`multipart/form-data`)
@@ -45,9 +52,14 @@ export class ProjectsController {
       throw new BadRequestException('Only ZIP files are allowed');
     }
     const files = await this.projectsService.extractZip(file);
+    const chunks = this.chunkFileService.chunkFiles(files);
+    const vectorMetadata = await this.embeddingFileService.embeddingFiles(
+      chunks,
+      EmbeddingInputType.Passage,
+    );
     return {
-      totalFiles: files.length,
-      files,
+      total: vectorMetadata.length,
+      metadata: vectorMetadata,
     };
   }
 }

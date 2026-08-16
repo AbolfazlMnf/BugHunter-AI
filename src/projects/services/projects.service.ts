@@ -4,12 +4,14 @@ import { IProjectFile } from '../types/project-file.type';
 import { ALLOWED_FILE_EXTENSIONS } from '../constants/project-files.constants';
 import { FileTypeService } from './file-type.service';
 import { FileLanguageService } from './file-language.service';
+import { ChunkFileService } from './chunk-file.service';
 
 @Injectable()
 export class ProjectsService {
   constructor(
     private readonly fileTypeService: FileTypeService,
     private readonly fileLanguageService: FileLanguageService,
+    private readonly chunkFileService: ChunkFileService,
   ) {}
   private readonly ignoredDirectories = [
     'node_modules/',
