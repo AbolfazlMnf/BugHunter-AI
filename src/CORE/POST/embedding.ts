@@ -16,11 +16,15 @@ export interface INvidiaEmbeddingResponse {
 
 export interface IEmbeddingResponse extends IChunkFile {
   embedding: number[];
+  projectId: string;
+  userId: string;
 }
 
 export const embeddingChunks = async (
   chunks: IChunkFile[],
   type: EmbeddingInputType,
+  projectId: string,
+  userId: string,
 ): Promise<IEmbeddingResponse[]> => {
   if (chunks.length === 0) {
     return [];
@@ -72,6 +76,8 @@ export const embeddingChunks = async (
 
     return chunks.map((chunk, index) => ({
       ...chunk,
+      projectId,
+      userId,
       embedding: embeddings[index].embedding,
     }));
   } catch (error) {

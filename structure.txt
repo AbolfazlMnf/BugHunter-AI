@@ -1,0 +1,58 @@
+                USER
+                 │
+                 │ JWT
+                 ▼
+              userId
+                 │
+                 ▼
+        ┌─────────────────┐
+        │ Create Project   │
+        └────────┬────────┘
+                 │
+                 ▼
+            projectId
+                 │
+                 │
+          Upload ZIP
+                 │
+                 ▼
+          Extract Project
+                 │
+                 ▼
+             Chunking
+                 │
+                 ▼
+            Embedding
+                 │
+                 ▼
+              Qdrant
+                 │
+        ┌────────┴─────────┐
+        │                  │
+      userId           projectId
+        │                  │
+        └────────┬─────────┘
+                 │
+                 │
+            Incident
+                 │
+                 ▼
+          Query Embedding
+                 │
+                 ▼
+              Qdrant
+                 │
+                 ▼
+         Relevant Chunks
+                 │
+                 ▼
+             RAG Context
+                 │
+                 ▼
+         Nemotron Reasoning
+                 │
+                 ▼
+         Structured JSON
+                 │
+                 ▼
+               User

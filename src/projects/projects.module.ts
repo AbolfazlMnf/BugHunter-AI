@@ -5,8 +5,18 @@ import { FileLanguageService } from './services/file-language.service';
 import { FileTypeService } from './services/file-type.service';
 import { ChunkFileService } from './services/chunk-file.service';
 import { EmbeddingFileService } from './services/embedding-file.service';
+import { MongooseModule } from '@nestjs/mongoose';
+import { Project, ProjectSchema } from './schemas/project.schema';
 
 @Module({
+  imports: [
+    MongooseModule.forFeature([
+      {
+        name: Project.name,
+        schema: ProjectSchema,
+      },
+    ]),
+  ],
   controllers: [ProjectsController],
   providers: [
     ProjectsService,

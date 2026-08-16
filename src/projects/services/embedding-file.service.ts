@@ -7,8 +7,15 @@ export class EmbeddingFileService {
   async embeddingFiles(
     chunkFiles: IChunkFile[],
     type: EmbeddingInputType = EmbeddingInputType.Passage,
+    projectId: string,
+    userId: string,
   ) {
-    const embeddings = await embeddingChunks(chunkFiles, type);
+    const embeddings = await embeddingChunks(
+      chunkFiles,
+      type,
+      projectId,
+      userId,
+    );
     return embeddings;
   }
 }

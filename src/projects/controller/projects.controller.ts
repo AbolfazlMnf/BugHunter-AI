@@ -2,23 +2,33 @@ import {
   BadRequestException,
   Body,
   Controller,
+  Delete,
   FileTypeValidator,
+  Get,
   MaxFileSizeValidator,
+  Param,
   ParseFilePipe,
   Post,
+  Query,
   UploadedFile,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { ApiBearerAuth, ApiConsumes } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiConsumes, ApiTags } from '@nestjs/swagger';
 import { JwtGuard } from 'src/shared/guards/jwt.guard';
 import { UploadProjectDto } from '../dtos/upload-project.dto';
 import { ProjectsService } from '../services/projects.service';
 import { ChunkFileService } from '../services/chunk-file.service';
 import { EmbeddingFileService } from '../services/embedding-file.service';
 import { EmbeddingInputType } from 'src/CORE/POST/embedding';
+import { User } from 'src/shared/decorators/user.decorator';
+import { ProjectDto } from '../dtos/project.dto';
+import { GeneralQueryDto } from 'src/shared/dtos/query.dto';
+import { RoleGuard } from 'src/shared/guards/role.guard';
+import { Role } from 'src/user/Schema/user.schema';
 
+@ApiTags(`Projects`)
 @Controller('projects')
 @ApiBearerAuth()
 @UseGuards(JwtGuard)
@@ -29,7 +39,32 @@ export class ProjectsController {
     private readonly embeddingFileService: EmbeddingFileService,
   ) {}
 
-  @Post(`upload-file-zip`)
+  @Get()
+  findUserProjects(@User() user: string, @Query() queries: GeneralQueryDto) {
+    return this.projectsService.findUserProjects(user, queries);
+  }
+
+  @Get(`/admin`)
+  @UseGuards(new RoleGuard([Role.Admin]))
+  findAllProjects(@Query() queries: GeneralQueryDto) {
+    return this.projectsService.findAllProjects(queries);
+  }
+
+  @Post()
+  createNewProject(@User() user: string, @Body() body: ProjectDto) {
+    return this.projectsService.createProject(body.name, user);
+  }
+  @Get(`/:id`)
+  getOne(@Param(`id`) id: string) {
+    return this.projectsService.findOne(id);
+  }
+
+  @Delete(`/:id`)
+  deleteProject(@Param(`id`) id: string) {
+    return this.projectsService.deleteProject(id);
+  }
+
+  @Post(`/:id/upload-file-zip`)
   @ApiConsumes(`multipart/form-data`)
   @UseInterceptors(FileInterceptor(`file`))
   async uploadFileZip(
@@ -47,15 +82,22 @@ export class ProjectsController {
     )
     file: Express.Multer.File,
     @Body() body: UploadProjectDto,
+    @Param(`id`) id: string,
+    @User() user: string,
   ) {
     if (!file.originalname.toLocaleLowerCase().endsWith(`.zip`)) {
       throw new BadRequestException('Only ZIP files are allowed');
     }
+
+    const project = await this.projectsService.findExactProject(id, user);
+
     const files = await this.projectsService.extractZip(file);
     const chunks = this.chunkFileService.chunkFiles(files);
     const vectorMetadata = await this.embeddingFileService.embeddingFiles(
       chunks,
       EmbeddingInputType.Passage,
+      project._id.toString(),
+      user,
     );
     return {
       total: vectorMetadata.length,
