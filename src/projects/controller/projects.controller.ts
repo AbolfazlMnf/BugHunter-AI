@@ -27,6 +27,7 @@ import { ProjectDto } from '../dtos/project.dto';
 import { GeneralQueryDto } from 'src/shared/dtos/query.dto';
 import { RoleGuard } from 'src/shared/guards/role.guard';
 import { Role } from 'src/user/Schema/user.schema';
+import { QdrantService } from 'src/vector/qdrant.service';
 
 @ApiTags(`Projects`)
 @Controller('projects')
@@ -37,6 +38,7 @@ export class ProjectsController {
     private readonly projectsService: ProjectsService,
     private readonly chunkFileService: ChunkFileService,
     private readonly embeddingFileService: EmbeddingFileService,
+    private readonly qdrantService: QdrantService,
   ) {}
 
   @Get()
@@ -90,18 +92,25 @@ export class ProjectsController {
     }
 
     const project = await this.projectsService.findExactProject(id, user);
+    await this.projectsService.addCodeBaseToProject(
+      project._id.toString(),
+      file,
+    );
 
     const files = await this.projectsService.extractZip(file);
     const chunks = this.chunkFileService.chunkFiles(files);
-    const vectorMetadata = await this.embeddingFileService.embeddingFiles(
+    const embeddedChunks = await this.embeddingFileService.embeddingFiles(
       chunks,
       EmbeddingInputType.Passage,
       project._id.toString(),
       user,
     );
+    await this.qdrantService.upsertEmbeddedChunks(embeddedChunks);
+    console.log(embeddedChunks);
+
     return {
-      total: vectorMetadata.length,
-      metadata: vectorMetadata,
+      totalFiles: files.length,
+      totalChunks: embeddedChunks.length,
     };
   }
 }

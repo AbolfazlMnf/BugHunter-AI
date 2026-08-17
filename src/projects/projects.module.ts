@@ -7,6 +7,8 @@ import { ChunkFileService } from './services/chunk-file.service';
 import { EmbeddingFileService } from './services/embedding-file.service';
 import { MongooseModule } from '@nestjs/mongoose';
 import { Project, ProjectSchema } from './schemas/project.schema';
+import { QdrantService } from 'src/vector/qdrant.service';
+import { CodeBase, CodeBaseSchema } from './schemas/code-base.schema';
 
 @Module({
   imports: [
@@ -14,6 +16,10 @@ import { Project, ProjectSchema } from './schemas/project.schema';
       {
         name: Project.name,
         schema: ProjectSchema,
+      },
+      {
+        name: CodeBase.name,
+        schema: CodeBaseSchema,
       },
     ]),
   ],
@@ -24,6 +30,7 @@ import { Project, ProjectSchema } from './schemas/project.schema';
     FileTypeService,
     ChunkFileService,
     EmbeddingFileService,
+    QdrantService,
   ],
 })
 export class ProjectsModule {}

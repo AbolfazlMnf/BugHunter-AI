@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
@@ -13,6 +14,7 @@ import { InjectModel } from '@nestjs/mongoose';
 import { Project } from '../schemas/project.schema';
 import { Model } from 'mongoose';
 import { GeneralQueryDto } from 'src/shared/dtos/query.dto';
+import { CodeBase } from '../schemas/code-base.schema';
 
 @Injectable()
 export class ProjectsService {
@@ -21,6 +23,7 @@ export class ProjectsService {
     private readonly fileTypeService: FileTypeService,
     private readonly fileLanguageService: FileLanguageService,
     private readonly chunkFileService: ChunkFileService,
+    @InjectModel(CodeBase.name) private readonly codebaseModel: Model<CodeBase>,
   ) {}
   private readonly ignoredDirectories = [
     'node_modules/',
@@ -47,7 +50,7 @@ export class ProjectsService {
           `Unsafe path detected: ${normalizedPath}`,
         );
       }
-      if (!this.isAllowed) {
+      if (!this.isAllowed(normalizedPath)) {
         continue;
       }
 
@@ -83,7 +86,7 @@ export class ProjectsService {
   }
   private isAllowed(path: string) {
     const normalizedPath = path.toLowerCase();
-    ALLOWED_FILE_EXTENSIONS.some((extension) =>
+    return ALLOWED_FILE_EXTENSIONS.some((extension) =>
       normalizedPath.endsWith(extension),
     );
   }
@@ -99,7 +102,10 @@ export class ProjectsService {
     return newProject;
   }
   async findOne(id: string) {
-    const project = await this.projectModel.findById(id).exec();
+    const project = await this.projectModel
+      .findById(id)
+      .populate(`codebase`)
+      .exec();
     if (!project) {
       throw new NotFoundException(`project not found`);
     }
@@ -111,7 +117,10 @@ export class ProjectsService {
     return { message: `project deleted successfully` };
   }
   async findExactProject(id: string, userId: string) {
-    const project = await this.projectModel.findOne({ _id: id, userId }).exec();
+    const project = await this.projectModel
+      .findOne({ _id: id, userId })
+      .populate(`codebase`)
+      .exec();
     if (!project) {
       throw new NotFoundException(`project not found`);
     }
@@ -138,9 +147,27 @@ export class ProjectsService {
         .find()
         .skip((page - 1) * limit)
         .limit(limit)
+        .populate(`codebase`)
         .exec(),
       this.projectModel.countDocuments().exec(),
     ]);
     return { page, limit, projects, count };
+  }
+  async addCodeBaseToProject(projectId: string, file: Express.Multer.File) {
+    const project = await this.projectModel.findById(projectId);
+    if (!project) {
+      throw new NotFoundException();
+    }
+    if (project?.codebase) {
+      throw new ConflictException(`this project has already codebase`);
+    }
+
+    const newCodebase = new this.codebaseModel({
+      originalFileName: file.originalname,
+    });
+    await newCodebase.save();
+    project.codebase = newCodebase._id;
+    await project?.save();
+    return project;
   }
 }
