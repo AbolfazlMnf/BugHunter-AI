@@ -4,14 +4,14 @@ import { chatResponseSchema } from 'src/chat/Schemas/chat-validation.schema';
 import {
   ChatResponse,
   IChatMessage,
-  IncidentRequestType,
+  IncidentResponseType,
   NvidiaResponse,
 } from 'src/chat/types';
 const stream = false;
 
 export const sendRequest = async (
   messages: IChatMessage[],
-  incidentType: IncidentRequestType = IncidentRequestType.INITIAL_ANALYSIS,
+  responseType: IncidentResponseType = IncidentResponseType.STRUCTURED_JSON,
 ): Promise<ChatResponse> => {
   const apiKey = process.env.NVIDIA_API_KEY;
   const invokeUrl = process.env.INVOKE_URL;
@@ -34,7 +34,7 @@ export const sendRequest = async (
     temperature: 0.5,
     top_p: 0.95,
   };
-  if (incidentType === IncidentRequestType.INITIAL_ANALYSIS) {
+  if (responseType === IncidentResponseType.STRUCTURED_JSON) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     payload.response_format = {
       type: 'json_schema',
@@ -88,7 +88,7 @@ export const sendRequest = async (
     if (!content) {
       throw new InternalServerErrorException('No content received from AI');
     }
-    if (incidentType === IncidentRequestType.INITIAL_ANALYSIS) {
+    if (responseType === IncidentResponseType.STRUCTURED_JSON) {
       const parsedContent = chatResponseSchema.safeParse(JSON.parse(content));
       if (!parsedContent.success) {
         console.error('Invalid AI response:', parsedContent.error.issues);
@@ -97,12 +97,12 @@ export const sendRequest = async (
         );
       }
       return {
-        type: IncidentRequestType.INITIAL_ANALYSIS,
+        type: IncidentResponseType.STRUCTURED_JSON,
         data: parsedContent.data,
       };
     }
 
-    return { type: IncidentRequestType.FOLLOW_UP, data: { text: content } };
+    return { type: IncidentResponseType.SIMPLE_CHAT, data: { text: content } };
   } catch (error) {
     console.error('Error sending message:', error);
     throw new InternalServerErrorException('Failed to send message to API');

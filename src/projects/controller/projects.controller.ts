@@ -21,7 +21,6 @@ import { UploadProjectDto } from '../dtos/upload-project.dto';
 import { ProjectsService } from '../services/projects.service';
 import { ChunkFileService } from '../services/chunk-file.service';
 import { EmbeddingFileService } from '../services/embedding-file.service';
-import { EmbeddingInputType } from 'src/CORE/POST/embedding';
 import { User } from 'src/shared/decorators/user.decorator';
 import { ProjectDto } from '../dtos/project.dto';
 import { GeneralQueryDto } from 'src/shared/dtos/query.dto';
@@ -101,7 +100,6 @@ export class ProjectsController {
     const chunks = this.chunkFileService.chunkFiles(files);
     const embeddedChunks = await this.embeddingFileService.embeddingFiles(
       chunks,
-      EmbeddingInputType.Passage,
       project._id.toString(),
       user,
     );

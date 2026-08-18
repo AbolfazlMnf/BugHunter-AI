@@ -1,6 +1,3 @@
-import z from 'zod';
-import { chatResponseSchema } from '../Schemas/chat-validation.schema';
-
 export interface NvidiaResponse {
   choices: Array<{
     message: {
@@ -25,18 +22,18 @@ export type FollowUpData = {
 
 export type ChatResponse =
   | {
-      type: IncidentRequestType.INITIAL_ANALYSIS;
+      type: IncidentResponseType.STRUCTURED_JSON;
       data: AnalysisData;
     }
   | {
-      type: IncidentRequestType.FOLLOW_UP;
+      type: IncidentResponseType.SIMPLE_CHAT;
       data: FollowUpData;
     };
 export interface IChatMessage {
   role: 'user' | 'assistant' | 'system';
   content: string;
 }
-export enum IncidentRequestType {
-  INITIAL_ANALYSIS = 'INITIAL_ANALYSIS',
-  FOLLOW_UP = 'FOLLOW_UP',
+export enum IncidentResponseType {
+  STRUCTURED_JSON = `Structured_Json`,
+  SIMPLE_CHAT = 'SIMPLE_CHAT',
 }

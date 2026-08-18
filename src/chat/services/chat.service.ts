@@ -1,11 +1,63 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { sendRequest } from 'src/CORE/POST/sendMessage';
 import { ChatMemoryService } from './chat-memory.service';
-import { IChatMessage, IncidentRequestType } from '../types';
+import { IChatMessage, IncidentResponseType } from '../types';
 import { v4 as uuidv4 } from 'uuid';
+import { RetrievedChunk } from 'src/projects/types/retrieved-chunk.type';
 @Injectable()
 export class ChatService {
   constructor(private readonly chatMemoryService: ChatMemoryService) {}
+  private readonly systemPrompt = `You are an expert Senior Backend Engineer and Production Incident Analyst.
+
+You specialize in:
+- NestJS
+- Node.js
+- TypeScript
+- Express.js
+- Next.js
+- MongoDB
+- PostgreSQL
+- Redis
+- REST APIs
+- Authentication and Authorization
+- Distributed Systems
+- Microservices
+- Docker
+- Networking
+- Performance and Reliability
+
+Your task is to analyze a production incident using the provided incident description and relevant source-code context retrieved from the project's codebase.
+
+IMPORTANT RULES:
+
+1. Analyze the incident using the provided evidence.
+2. Do not invent code, configuration, behavior, logs, or infrastructure that are not present in the provided context.
+3. If the available evidence is insufficient to determine the root cause with certainty, explicitly state that the root cause cannot be determined with certainty.
+4. Distinguish between:
+   - confirmed facts
+   - strong evidence
+   - assumptions
+5. Prefer explanations directly supported by the provided source code.
+6. When referring to code, mention the file path and relevant line numbers when available.
+7. Do not assume that a retrieved chunk represents the entire file.
+8. Consider interactions between multiple files when analyzing the incident.
+9. Look for:
+   - incorrect logic
+   - missing validation
+   - authentication/authorization problems
+   - race conditions
+   - state management problems
+   - database issues
+   - caching problems
+   - error handling problems
+   - configuration problems
+   - dependency problems
+   - performance bottlenecks
+   - distributed-system failures
+10. Do not recommend changing code unless the recommendation is relevant to the identified problem.
+11. If multiple possible root causes exist, rank them by likelihood and explain why.
+12. The final response MUST follow the provided JSON schema exactly.`;
+
   generateMemoryKey(userId: string, sessionId: string): string {
     return `${userId}:${sessionId}`;
   }
@@ -26,28 +78,49 @@ export class ChatService {
   async getChatResponse(
     userId: string,
     sessionId: string | undefined,
-    userMessage: string,
+    incident: string,
+    retrievedChunks?: RetrievedChunk[],
   ) {
     const activeSessionId = sessionId || uuidv4();
     const memoryKey = this.generateMemoryKey(userId, activeSessionId);
-    const history = await this.getChatHistory(memoryKey);
-    const newMessage = { role: 'user' as const, content: userMessage };
-    const isFirstMessage = history.length === 0;
-    const requestType = isFirstMessage
-      ? IncidentRequestType.INITIAL_ANALYSIS
-      : IncidentRequestType.FOLLOW_UP;
+    const history = (await this.chatMemoryService.getHistory(memoryKey)) ?? [];
+    const newMessage = {
+      role: 'user' as const,
+      content: `
+Production Incident:
 
-    const prompt = isFirstMessage
-      ? `You are a senior backend engineer specialized in NestJS, Node.js, Next.js, TypeScript, MongoDB, PostgreSQL, Redis, and Distributed Systems.
-Analyse the provided incident/code accurately. Do not invent information that is not supported by the input. If uncertain, state it clearly.`
-      : `You are a senior backend engineer. Answer the user's follow-up questions clearly and concisely using Markdown and code blocks where appropriate based on the previous incident analysis context.`;
-    const systemPrompt: IChatMessage = { role: 'system', content: prompt };
+${incident}
+
+
+${
+  retrievedChunks && retrievedChunks.length > 0
+    ? ` Relevant Code Context:
+
+${retrievedChunks
+  .map(
+    (chunk) => `
+  file path : ${chunk.path} 
+  lines : ${chunk.startLine}-${chunk.endLine} 
+  language: ${chunk.language} 
+  ${chunk.content}
+  `,
+  )
+  .join(`\n`)}`
+    : ``
+}
+`,
+    };
+
+    const systemPrompt: IChatMessage = {
+      role: 'system',
+      content: this.systemPrompt,
+    };
     const fullMessages = [systemPrompt, ...history, newMessage];
 
-    const result = await sendRequest(fullMessages, requestType);
+    const result = await sendRequest(fullMessages);
 
     let assistantResponse = ``;
-    if (result.type === IncidentRequestType.INITIAL_ANALYSIS) {
+    if (result.type === IncidentResponseType.STRUCTURED_JSON) {
       assistantResponse = `[Analysis Summary]
 - Severity: ${result.data.severity}
 - Root Cause: ${result.data.root_cause}

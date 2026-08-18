@@ -9,6 +9,7 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { Project, ProjectSchema } from './schemas/project.schema';
 import { QdrantService } from 'src/vector/qdrant.service';
 import { CodeBase, CodeBaseSchema } from './schemas/code-base.schema';
+import { RetrievalService } from './services/retrieval.service';
 
 @Module({
   imports: [
@@ -31,6 +32,7 @@ import { CodeBase, CodeBaseSchema } from './schemas/code-base.schema';
     ChunkFileService,
     EmbeddingFileService,
     QdrantService,
+    RetrievalService,
   ],
 })
 export class ProjectsModule {}

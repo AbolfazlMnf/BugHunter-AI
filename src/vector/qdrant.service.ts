@@ -1,6 +1,7 @@
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { IEmbeddingResponse } from 'src/CORE/POST/embedding';
+import { RetrievedChunk } from 'src/projects/types/retrieved-chunk.type';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -54,5 +55,45 @@ export class QdrantService implements OnModuleInit {
         },
       })),
     });
+  }
+
+  async search(
+    queryVector: number[],
+    projectId: string,
+    userId: string,
+    limit: number = 5,
+  ): Promise<RetrievedChunk[]> {
+    const results = await this.client.query(this.collectionName, {
+      query: queryVector,
+      limit,
+
+      with_payload: true,
+
+      filter: {
+        must: [
+          {
+            key: `projectId`,
+            match: {
+              value: projectId,
+            },
+          },
+          {
+            key: `userId`,
+            match: {
+              value: userId,
+            },
+          },
+        ],
+      },
+    });
+    return results.points.map((result) => ({
+      content: result.payload?.content as string,
+      path: result.payload?.path as string,
+      language: result.payload?.language as string,
+      type: result.payload?.type as string,
+      startLine: result.payload?.startLine as number,
+      endLine: result.payload?.endLine as number,
+      score: result.score,
+    }));
   }
 }
