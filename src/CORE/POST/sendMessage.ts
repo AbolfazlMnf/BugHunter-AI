@@ -42,35 +42,62 @@ export const sendRequest = async (
         name: 'incident_analysis',
         schema: {
           type: 'object',
+
           properties: {
             severity: {
               type: 'string',
               enum: ['low', 'medium', 'high'],
             },
 
-            root_cause: {
+            rootCause: {
               type: 'string',
+            },
+
+            confidence: {
+              type: 'number',
+            },
+
+            evidence: {
+              type: 'array',
+              items: {
+                type: 'object',
+                properties: {
+                  filePath: {
+                    type: 'string',
+                  },
+                  reason: {
+                    type: 'string',
+                  },
+                },
+                required: ['filePath', 'reason'],
+                additionalProperties: false,
+              },
             },
 
             explanation: {
               type: 'string',
             },
 
-            recommendation: {
-              type: 'string',
+            recommendations: {
+              type: 'array',
+              items: {
+                type: 'string',
+              },
             },
 
-            preventive_measures: {
-              type: 'string',
+            insufficientContext: {
+              type: 'boolean',
             },
           },
 
           required: [
             'severity',
-            'root_cause',
+            'rootCause',
+            'confidence',
+            'evidence',
             'explanation',
-            'recommendation',
-            'preventive_measures',
+            'recommendations',
+            'insufficientContext',
           ],
 
           additionalProperties: false,
@@ -105,6 +132,9 @@ export const sendRequest = async (
     return { type: IncidentResponseType.SIMPLE_CHAT, data: { text: content } };
   } catch (error) {
     console.error('Error sending message:', error);
+    if (error instanceof InternalServerErrorException) {
+      throw error;
+    }
     throw new InternalServerErrorException('Failed to send message to API');
   }
 };

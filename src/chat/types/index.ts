@@ -10,10 +10,15 @@ export interface NvidiaResponse {
 
 export type AnalysisData = {
   severity: 'low' | 'medium' | 'high';
-  root_cause: string;
+  rootCause: string;
+  confidence: number;
+  evidence: {
+    filePath: string;
+    reason: string;
+  }[];
   explanation: string;
-  recommendation: string;
-  preventive_measures: string;
+  recommendations: string[];
+  insufficientContext: boolean;
 };
 
 export type FollowUpData = {

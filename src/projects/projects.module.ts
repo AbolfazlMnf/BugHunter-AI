@@ -34,5 +34,6 @@ import { RetrievalService } from './services/retrieval.service';
     QdrantService,
     RetrievalService,
   ],
+  exports: [ProjectsService],
 })
 export class ProjectsModule {}

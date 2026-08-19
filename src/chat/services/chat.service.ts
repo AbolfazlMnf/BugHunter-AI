@@ -26,37 +26,7 @@ You specialize in:
 - Networking
 - Performance and Reliability
 
-Your task is to analyze a production incident using the provided incident description and relevant source-code context retrieved from the project's codebase.
-
-IMPORTANT RULES:
-
-1. Analyze the incident using the provided evidence.
-2. Do not invent code, configuration, behavior, logs, or infrastructure that are not present in the provided context.
-3. If the available evidence is insufficient to determine the root cause with certainty, explicitly state that the root cause cannot be determined with certainty.
-4. Distinguish between:
-   - confirmed facts
-   - strong evidence
-   - assumptions
-5. Prefer explanations directly supported by the provided source code.
-6. When referring to code, mention the file path and relevant line numbers when available.
-7. Do not assume that a retrieved chunk represents the entire file.
-8. Consider interactions between multiple files when analyzing the incident.
-9. Look for:
-   - incorrect logic
-   - missing validation
-   - authentication/authorization problems
-   - race conditions
-   - state management problems
-   - database issues
-   - caching problems
-   - error handling problems
-   - configuration problems
-   - dependency problems
-   - performance bottlenecks
-   - distributed-system failures
-10. Do not recommend changing code unless the recommendation is relevant to the identified problem.
-11. If multiple possible root causes exist, rank them by likelihood and explain why.
-12. The final response MUST follow the provided JSON schema exactly.`;
+`;
 
   generateMemoryKey(userId: string, sessionId: string): string {
     return `${userId}:${sessionId}`;
@@ -117,16 +87,28 @@ ${retrievedChunks
     };
     const fullMessages = [systemPrompt, ...history, newMessage];
 
-    const result = await sendRequest(fullMessages);
+    const responseType =
+      retrievedChunks && retrievedChunks.length > 0
+        ? IncidentResponseType.STRUCTURED_JSON
+        : IncidentResponseType.SIMPLE_CHAT;
+
+    const result = await sendRequest(fullMessages, responseType);
 
     let assistantResponse = ``;
     if (result.type === IncidentResponseType.STRUCTURED_JSON) {
       assistantResponse = `[Analysis Summary]
 - Severity: ${result.data.severity}
-- Root Cause: ${result.data.root_cause}
+- Root Cause: ${result.data.rootCause}
 - Explanation: ${result.data.explanation}
-- Recommendation: ${result.data.recommendation}
-- Preventive Measures: ${result.data.preventive_measures}`;
+- Recommendations: ${result.data.recommendations.join(', ')}
+- Confidence: ${result.data.confidence}
+
+Evidence:
+${result.data.evidence
+  .map((item) => `- ${item.filePath}: ${item.reason}`)
+  .join('\n')}
+
+`;
     } else {
       assistantResponse = result?.data?.text;
     }
