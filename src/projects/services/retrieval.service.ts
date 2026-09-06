@@ -5,6 +5,9 @@ import { QdrantService } from 'src/vector/qdrant.service';
 @Injectable()
 export class RetrievalService {
   constructor(private readonly qdrantService: QdrantService) {}
+
+  private MIN_SCORE = 0.7;
+
   async retrievalIncident(incident: string, projectId: string, userId: string) {
     const embeddedIncident = await embeddingQuery(incident, projectId, userId);
     const queryResult = await this.qdrantService.search(
@@ -13,9 +16,14 @@ export class RetrievalService {
       userId,
     );
     console.log(queryResult);
-    if (queryResult.length === 0) {
-      throw new NotFoundException(`no vector result found `);
+
+    const relevantResults = queryResult.filter(
+      (result) => result.score >= this.MIN_SCORE,
+    );
+    if (relevantResults.length === 0) {
+      throw new NotFoundException('No relevant code found for this incident');
     }
-    return queryResult;
+
+    return relevantResults;
   }
 }
