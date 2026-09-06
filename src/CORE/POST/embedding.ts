@@ -73,6 +73,12 @@ export const embeddingPassageChunks = async (
       );
     }
 
+    if (embeddings.length !== chunks.length) {
+      throw new InternalServerErrorException(
+        `Mismatch between number of embeddings and number of chunks`,
+      );
+    }
+
     return chunks.map((chunk, index) => ({
       ...chunk,
       projectId,
@@ -120,7 +126,7 @@ export const embeddingQuery = async (
 
     const embeddings = res.data.data;
 
-    const dimension = embeddings?.[0].embedding.length;
+    const dimension = embeddings?.[0]?.embedding.length;
     console.log(dimension);
 
     if (!dimension) {
