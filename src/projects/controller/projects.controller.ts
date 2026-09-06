@@ -91,16 +91,16 @@ export class ProjectsController {
     }
 
     const project = await this.projectsService.findExactProject(id, user);
+    await this.projectsService.addCodeBaseToProject(
+      project._id.toString(),
+      file,
+    );
     const files = await this.projectsService.extractZip(file);
     const chunks = this.chunkFileService.chunkFiles(files);
     const embeddedChunks = await this.embeddingFileService.embeddingFiles(
       chunks,
       project._id.toString(),
       user,
-    );
-    await this.projectsService.addCodeBaseToProject(
-      project._id.toString(),
-      file,
     );
 
     await this.qdrantService.upsertEmbeddedChunks(embeddedChunks);
