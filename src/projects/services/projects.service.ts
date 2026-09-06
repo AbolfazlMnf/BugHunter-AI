@@ -72,7 +72,10 @@ export class ProjectsService {
   private isIgnoredDirectory(path: string): boolean {
     const normalizedPath = path.replace(/\\/g, '/');
     return this.ignoredDirectories.some(
-      (dir) => normalizedPath.startsWith(dir) || dir === normalizedPath,
+      (dir) =>
+        normalizedPath.startsWith(dir) ||
+        dir === normalizedPath ||
+        normalizedPath.includes(dir),
     );
   }
   private isUnSafePath(path: string): boolean {
