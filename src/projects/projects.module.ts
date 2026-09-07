@@ -10,6 +10,8 @@ import { Project, ProjectSchema } from './schemas/project.schema';
 import { QdrantService } from 'src/vector/qdrant.service';
 import { CodeBase, CodeBaseSchema } from './schemas/code-base.schema';
 import { RetrievalService } from './services/retrieval.service';
+import { BullModule } from '@nestjs/bullmq';
+import { projectProcessor } from './processors/project.processor';
 
 @Module({
   imports: [
@@ -23,6 +25,9 @@ import { RetrievalService } from './services/retrieval.service';
         schema: CodeBaseSchema,
       },
     ]),
+    BullModule.registerQueue({
+      name: `project-processing`,
+    }),
   ],
   controllers: [ProjectsController],
   providers: [
@@ -33,6 +38,7 @@ import { RetrievalService } from './services/retrieval.service';
     EmbeddingFileService,
     QdrantService,
     RetrievalService,
+    projectProcessor,
   ],
   exports: [ProjectsService],
 })

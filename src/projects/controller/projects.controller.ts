@@ -27,6 +27,8 @@ import { GeneralQueryDto } from 'src/shared/dtos/query.dto';
 import { RoleGuard } from 'src/shared/guards/role.guard';
 import { Role } from 'src/user/Schema/user.schema';
 import { QdrantService } from 'src/vector/qdrant.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
 
 @ApiTags(`Projects`)
 @Controller('projects')
@@ -38,6 +40,7 @@ export class ProjectsController {
     private readonly chunkFileService: ChunkFileService,
     private readonly embeddingFileService: EmbeddingFileService,
     private readonly qdrantService: QdrantService,
+    @InjectQueue(`project-processing`) private readonly projectQueue: Queue,
   ) {}
 
   @Get()
@@ -91,16 +94,26 @@ export class ProjectsController {
     }
 
     const project = await this.projectsService.findExactProject(id, user);
-    await this.projectsService.addCodeBaseToProject(
-      project._id.toString(),
-      file,
-    );
+    if (project.codebase !== null) {
+      throw new BadRequestException(`this project has already codeBase !`);
+    }
+
+    await this.projectQueue.add(`process-project`, {
+      projectId: id,
+      userId: user,
+    });
+
     const files = await this.projectsService.extractZip(file);
     const chunks = this.chunkFileService.chunkFiles(files);
     const embeddedChunks = await this.embeddingFileService.embeddingFiles(
       chunks,
       project._id.toString(),
       user,
+    );
+
+    await this.projectsService.addCodeBaseToProject(
+      project._id.toString(),
+      file,
     );
 
     await this.qdrantService.upsertEmbeddedChunks(embeddedChunks);

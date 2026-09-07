@@ -11,6 +11,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { APP_FILTER } from '@nestjs/core';
 import { GlobalExceptionFilter } from './shared/filters/log.filter';
 import { ProjectsModule } from './projects/projects.module';
+import { BullModule } from '@nestjs/bullmq';
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -29,6 +30,12 @@ import { ProjectsModule } from './projects/projects.module';
       global: true,
     }),
     ProjectsModule,
+    BullModule.forRoot({
+      connection: {
+        host: process.env.REDIS_HOST || 'localhost',
+        port: Number(process.env.REDIS_PORT) || 6379,
+      },
+    }),
   ],
   controllers: [AppController],
   providers: [
