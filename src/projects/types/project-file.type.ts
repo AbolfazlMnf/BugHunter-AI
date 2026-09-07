@@ -6,3 +6,9 @@ export interface IProjectFile {
   type: TFileType;
   size: number;
 }
+
+export interface IProcessZipFileJobData {
+  projectId: string;
+  userId: string;
+  filePath: string;
+}

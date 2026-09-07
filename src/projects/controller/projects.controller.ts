@@ -29,6 +29,8 @@ import { Role } from 'src/user/Schema/user.schema';
 import { QdrantService } from 'src/vector/qdrant.service';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
+import { join } from 'path';
+import { mkdir, writeFile } from 'fs/promises';
 
 @ApiTags(`Projects`)
 @Controller('projects')
@@ -98,30 +100,36 @@ export class ProjectsController {
       throw new BadRequestException(`this project has already codeBase !`);
     }
 
-    await this.projectQueue.add(`process-project`, {
+    const uploadDir = join(process.cwd(), 'uploads', 'projects', id);
+    await mkdir(uploadDir, { recursive: true });
+    const filePath = join(uploadDir, file.originalname);
+    await writeFile(filePath, file.buffer);
+
+    await this.projectQueue.add(`process-zip-file`, {
       projectId: id,
       userId: user,
+      filePath,
     });
 
-    const files = await this.projectsService.extractZip(file);
-    const chunks = this.chunkFileService.chunkFiles(files);
-    const embeddedChunks = await this.embeddingFileService.embeddingFiles(
-      chunks,
-      project._id.toString(),
-      user,
-    );
+    // const files = await this.projectsService.extractZip(file);
+    // const chunks = this.chunkFileService.chunkFiles(files);
+    // const embeddedChunks = await this.embeddingFileService.embeddingFiles(
+    //   chunks,
+    //   project._id.toString(),
+    //   user,
+    // );
 
-    await this.projectsService.addCodeBaseToProject(
-      project._id.toString(),
-      file,
-    );
+    // await this.projectsService.addCodeBaseToProject(
+    //   project._id.toString(),
+    //   file,
+    // );
 
-    await this.qdrantService.upsertEmbeddedChunks(embeddedChunks);
-    console.log(embeddedChunks);
+    // await this.qdrantService.upsertEmbeddedChunks(embeddedChunks);
+    // console.log(embeddedChunks);
 
-    return {
-      totalFiles: files.length,
-      totalChunks: embeddedChunks.length,
-    };
+    // return {
+    //   totalFiles: files.length,
+    //   totalChunks: embeddedChunks.length,
+    // };
   }
 }
