@@ -29,6 +29,9 @@ export class Project extends Document {
     default: ProjectProcessingStatus.NotStarted,
   })
   processingStatus!: ProjectProcessingStatus;
+
+  @Prop({ type: Number, default: 0 })
+  processingProgress!: number;
 }
 
 export const ProjectSchema = SchemaFactory.createForClass(Project);

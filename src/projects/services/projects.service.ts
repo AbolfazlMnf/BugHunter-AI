@@ -191,4 +191,10 @@ export class ProjectsService {
     await project.save();
     return project;
   }
+  async updateProcessingProgress(projectId: string, progressNumber: number) {
+    const project = await this.findOne(projectId);
+    project.processingProgress = progressNumber;
+    await project.save();
+    return project;
+  }
 }
