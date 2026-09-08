@@ -12,3 +12,11 @@ export interface IProcessZipFileJobData {
   userId: string;
   filePath: string;
 }
+
+export enum ProjectProcessingStatus {
+  NotStarted = `notStarted`,
+  Pending = `pending`,
+  Processing = `processing`,
+  Completed = `completed`,
+  Failed = `failed`,
+}

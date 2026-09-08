@@ -1,11 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { Processor, WorkerHost } from '@nestjs/bullmq';
-import { InternalServerErrorException } from '@nestjs/common';
 import { Job } from 'bullmq';
 import { readFile } from 'fs/promises';
 import { ChunkFileService } from '../services/chunk-file.service';
 import { ProjectsService } from '../services/projects.service';
-import { IProcessZipFileJobData } from '../types/project-file.type';
+import {
+  IProcessZipFileJobData,
+  ProjectProcessingStatus,
+} from '../types/project-file.type';
 import { basename } from 'path';
 import { EmbeddingFileService } from '../services/embedding-file.service';
 import { QdrantService } from 'src/vector/qdrant.service';
@@ -23,9 +25,15 @@ export class projectProcessor extends WorkerHost {
   async process(job: Job): Promise<void> {
     switch (job.name) {
       case `process-zip-file`: {
+        const jobData = job.data as IProcessZipFileJobData;
+        const { projectId, userId, filePath } = jobData;
+
+        await this.projectService.updateProjectProcessingStatus(
+          projectId,
+          ProjectProcessingStatus.Processing,
+        );
+
         try {
-          const jobData = job.data as IProcessZipFileJobData;
-          const { projectId, userId, filePath } = jobData;
           console.log(`zip file processing started`);
           const buffer = await readFile(filePath);
           const file = {
@@ -33,9 +41,12 @@ export class projectProcessor extends WorkerHost {
             originalname: basename(filePath) ?? `project.zip`,
           } as Express.Multer.File;
 
+          //extract zip file
           const files = await this.projectService.extractZip(file);
+          //chunking files
           const chunks = this.chunkFileService.chunkFiles(files);
           console.log('Chunks:', chunks.length, chunks);
+          // embedding chunkedFiles
           const embeddedChunks = await this.embeddingFileService.embeddingFiles(
             chunks,
             projectId,
@@ -46,10 +57,22 @@ export class projectProcessor extends WorkerHost {
             embeddedChunks.length,
             embeddedChunks,
           );
+          // edit projectCodeBase
           await this.projectService.addCodeBaseToProject(projectId, file);
+          // add to vector database
           await this.qdrantService.upsertEmbeddedChunks(embeddedChunks);
+
+          // update processing status
+          await this.projectService.updateProjectProcessingStatus(
+            projectId,
+            ProjectProcessingStatus.Completed,
+          );
         } catch (err) {
           console.log(err);
+          await this.projectService.updateProjectProcessingStatus(
+            projectId,
+            ProjectProcessingStatus.Failed,
+          );
           throw err;
         }
       }

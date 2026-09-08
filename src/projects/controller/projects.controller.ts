@@ -31,6 +31,7 @@ import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { join } from 'path';
 import { mkdir, writeFile } from 'fs/promises';
+import { ProjectProcessingStatus } from '../types/project-file.type';
 
 @ApiTags(`Projects`)
 @Controller('projects')
@@ -110,6 +111,17 @@ export class ProjectsController {
       userId: user,
       filePath,
     });
+
+    await this.projectsService.updateProjectProcessingStatus(
+      id,
+      ProjectProcessingStatus.Pending,
+    );
+
+    return {
+      message: 'Project processing started',
+      projectId: project._id,
+      status: project.processingStatus,
+    };
 
     // const files = await this.projectsService.extractZip(file);
     // const chunks = this.chunkFileService.chunkFiles(files);

@@ -5,7 +5,10 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import * as unzipper from 'unzipper';
-import { IProjectFile } from '../types/project-file.type';
+import {
+  IProjectFile,
+  ProjectProcessingStatus,
+} from '../types/project-file.type';
 import { ALLOWED_FILE_EXTENSIONS } from '../constants/project-files.constants';
 import { FileTypeService } from './file-type.service';
 import { FileLanguageService } from './file-language.service';
@@ -171,6 +174,15 @@ export class ProjectsService {
     await newCodebase.save();
     project.codebase = newCodebase._id;
     await project?.save();
+    return project;
+  }
+  async updateProjectProcessingStatus(
+    projectId: string,
+    status: ProjectProcessingStatus,
+  ) {
+    const project = await this.findOne(projectId);
+    project.processingStatus = status;
+    await project.save();
     return project;
   }
 }
