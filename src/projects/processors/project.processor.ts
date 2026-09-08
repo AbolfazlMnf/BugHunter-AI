@@ -11,6 +11,7 @@ import {
 import { basename } from 'path';
 import { EmbeddingFileService } from '../services/embedding-file.service';
 import { QdrantService } from 'src/vector/qdrant.service';
+import { deleteFile } from 'src/shared/utils/delete-file';
 
 @Processor(`project-processing`)
 export class projectProcessor extends WorkerHost {
@@ -67,12 +68,19 @@ export class projectProcessor extends WorkerHost {
             projectId,
             ProjectProcessingStatus.Completed,
           );
+          // delete zip file
+          await deleteFile(filePath);
         } catch (err) {
           console.log(err);
-          await this.projectService.updateProjectProcessingStatus(
-            projectId,
-            ProjectProcessingStatus.Failed,
-          );
+          const isLastAttempt =
+            job.attemptsMade + 1 >= (job?.opts?.attempts ?? 1);
+          if (isLastAttempt) {
+            await this.projectService.updateProjectProcessingStatus(
+              projectId,
+              ProjectProcessingStatus.Failed,
+            );
+            await deleteFile(filePath);
+          }
           throw err;
         }
       }

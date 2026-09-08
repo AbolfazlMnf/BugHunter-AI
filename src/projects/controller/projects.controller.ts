@@ -106,11 +106,21 @@ export class ProjectsController {
     const filePath = join(uploadDir, file.originalname);
     await writeFile(filePath, file.buffer);
 
-    await this.projectQueue.add(`process-zip-file`, {
-      projectId: id,
-      userId: user,
-      filePath,
-    });
+    await this.projectQueue.add(
+      `process-zip-file`,
+      {
+        projectId: id,
+        userId: user,
+        filePath,
+      },
+      {
+        attempts: 3,
+        backoff: {
+          type: `exponential`,
+          delay: 10000,
+        },
+      },
+    );
 
     await this.projectsService.updateProjectProcessingStatus(
       id,
@@ -143,5 +153,9 @@ export class ProjectsController {
     //   totalFiles: files.length,
     //   totalChunks: embeddedChunks.length,
     // };
+  }
+  @Delete('codebase/:id')
+  deleteProjectCodeBase(@Param(`id`) id: string) {
+    return this.projectsService.deleteCodeBase(id);
   }
 }

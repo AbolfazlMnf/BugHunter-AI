@@ -164,7 +164,7 @@ export class ProjectsService {
     if (!project) {
       throw new NotFoundException();
     }
-    if (project?.codebase) {
+    if (project.codebase !== null) {
       throw new ConflictException(`this project has already codebase`);
     }
 
@@ -182,6 +182,12 @@ export class ProjectsService {
   ) {
     const project = await this.findOne(projectId);
     project.processingStatus = status;
+    await project.save();
+    return project;
+  }
+  async deleteCodeBase(projectId: string) {
+    const project = await this.findOne(projectId);
+    project.codebase = null;
     await project.save();
     return project;
   }
