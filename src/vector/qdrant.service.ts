@@ -96,4 +96,19 @@ export class QdrantService implements OnModuleInit {
       score: result.score,
     }));
   }
+  async deleteProjectVectors(projectId: string) {
+    await this.client.delete(this.collectionName, {
+      filter: {
+        must: [
+          {
+            key: `projectId`,
+            match: {
+              value: projectId,
+            },
+          },
+        ],
+      },
+      wait: true,
+    });
+  }
 }

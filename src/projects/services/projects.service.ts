@@ -18,6 +18,7 @@ import { Project } from '../schemas/project.schema';
 import { Model } from 'mongoose';
 import { GeneralQueryDto } from 'src/shared/dtos/query.dto';
 import { CodeBase } from '../schemas/code-base.schema';
+import { QdrantService } from 'src/vector/qdrant.service';
 
 @Injectable()
 export class ProjectsService {
@@ -26,6 +27,7 @@ export class ProjectsService {
     private readonly fileTypeService: FileTypeService,
     private readonly fileLanguageService: FileLanguageService,
     private readonly chunkFileService: ChunkFileService,
+    private readonly qdrantService: QdrantService,
     @InjectModel(CodeBase.name) private readonly codebaseModel: Model<CodeBase>,
   ) {}
   private readonly ignoredDirectories = [
@@ -189,6 +191,7 @@ export class ProjectsService {
     const project = await this.findOne(projectId);
     project.codebase = null;
     await project.save();
+    await this.qdrantService.deleteProjectVectors(projectId);
     return project;
   }
   async updateProcessingProgress(projectId: string, progressNumber: number) {
