@@ -120,7 +120,7 @@ export class ProjectsController {
     return {
       message: 'Project processing started',
       projectId: project._id,
-      status: project.processingStatus,
+      status: ProjectProcessingStatus.Pending,
     };
 
     // const files = await this.projectsService.extractZip(file);
