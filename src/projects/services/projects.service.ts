@@ -200,4 +200,24 @@ export class ProjectsService {
     await project.save();
     return project;
   }
+  async startProjectProcessing(projectId: string) {
+    return this.projectModel.findOneAndUpdate(
+      {
+        _id: projectId,
+        processingStatus: ProjectProcessingStatus.NotStarted,
+      },
+      {
+        $set: {
+          processingStatus: ProjectProcessingStatus.Pending,
+        },
+      },
+      { returnDocument: `after` },
+    );
+  }
+  async resetProcessingStatus(projectId) {
+    const project = await this.findOne(projectId);
+    project.processingStatus = ProjectProcessingStatus.NotStarted;
+    await project.save();
+    return project;
+  }
 }

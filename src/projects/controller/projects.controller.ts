@@ -1,10 +1,12 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   Delete,
   FileTypeValidator,
   Get,
+  InternalServerErrorException,
   MaxFileSizeValidator,
   Param,
   ParseFilePipe,
@@ -98,62 +100,55 @@ export class ProjectsController {
 
     const project = await this.projectsService.findExactProject(id, user);
     if (project.codebase !== null) {
-      throw new BadRequestException(`this project has already codeBase !`);
+      throw new ConflictException('Project is already has a codebase');
     }
 
-    const uploadDir = join(process.cwd(), 'uploads', 'projects', id);
-    await mkdir(uploadDir, { recursive: true });
-    const filePath = join(uploadDir, file.originalname);
-    await writeFile(filePath, file.buffer);
+    let jobCreated = false;
 
-    await this.projectQueue.add(
-      `process-zip-file`,
-      {
-        projectId: id,
-        userId: user,
-        filePath,
-      },
-      {
-        attempts: 3,
-        backoff: {
-          type: `exponential`,
-          delay: 10000,
+    try {
+      // just one project must be processed in the same time requests
+      const pendingProject =
+        await this.projectsService.startProjectProcessing(id);
+
+      if (!pendingProject) {
+        throw new ConflictException('Project is already being processed');
+      }
+
+      const uploadDir = join(process.cwd(), 'uploads', 'projects', id);
+      await mkdir(uploadDir, { recursive: true });
+      const filePath = join(uploadDir, file.originalname);
+      await writeFile(filePath, file.buffer);
+
+      await this.projectQueue.add(
+        `process-zip-file`,
+        {
+          projectId: id,
+          userId: user,
+          filePath,
         },
-      },
-    );
+        {
+          attempts: 3,
+          backoff: {
+            type: `exponential`,
+            delay: 10000,
+          },
+        },
+      );
+      jobCreated = true;
 
-    await this.projectsService.updateProjectProcessingStatus(
-      id,
-      ProjectProcessingStatus.Pending,
-    );
-
-    return {
-      message: 'Project processing started',
-      projectId: project._id,
-      status: ProjectProcessingStatus.Pending,
-    };
-
-    // const files = await this.projectsService.extractZip(file);
-    // const chunks = this.chunkFileService.chunkFiles(files);
-    // const embeddedChunks = await this.embeddingFileService.embeddingFiles(
-    //   chunks,
-    //   project._id.toString(),
-    //   user,
-    // );
-
-    // await this.projectsService.addCodeBaseToProject(
-    //   project._id.toString(),
-    //   file,
-    // );
-
-    // await this.qdrantService.upsertEmbeddedChunks(embeddedChunks);
-    // console.log(embeddedChunks);
-
-    // return {
-    //   totalFiles: files.length,
-    //   totalChunks: embeddedChunks.length,
-    // };
+      return {
+        message: 'Project processing started',
+        projectId: project._id,
+        status: ProjectProcessingStatus.Pending,
+      };
+    } catch (err) {
+      if (!jobCreated) {
+        await this.projectsService.resetProcessingStatus(id);
+      }
+      throw new InternalServerErrorException();
+    }
   }
+
   @Delete('codebase/:id')
   deleteProjectCodeBase(@Param(`id`) id: string) {
     return this.projectsService.deleteCodeBase(id);
