@@ -40,12 +40,7 @@ export class QdrantService implements OnModuleInit {
     await this.client.upsert(this.collectionName, {
       wait: true,
       points: chunks.map((chunk) => ({
-        id: generateChunkId(
-          chunk.projectId,
-          chunk.path,
-          chunk.startLine,
-          chunk.endLine,
-        ),
+        id: generateChunkId(chunk.projectId, chunk.path, chunk.content),
 
         vector: chunk.embedding,
 
