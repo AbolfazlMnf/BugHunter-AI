@@ -2,6 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { QdrantClient } from '@qdrant/js-client-rest';
 import { IEmbeddingResponse } from 'src/CORE/POST/embedding';
 import { RetrievedChunk } from 'src/projects/types/retrieved-chunk.type';
+import { generateChunkId } from 'src/shared/utils/generate-Id';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -39,7 +40,12 @@ export class QdrantService implements OnModuleInit {
     await this.client.upsert(this.collectionName, {
       wait: true,
       points: chunks.map((chunk) => ({
-        id: uuidv4(),
+        id: generateChunkId(
+          chunk.projectId,
+          chunk.path,
+          chunk.startLine,
+          chunk.endLine,
+        ),
 
         vector: chunk.embedding,
 
