@@ -7,6 +7,7 @@ import {
   Query,
   Delete,
   Param,
+  Sse,
 } from '@nestjs/common';
 import { ChatDto, ChatQueryDto } from '../dtos/chat.dto';
 import { ChatService } from '../services/chat.service';
@@ -16,9 +17,10 @@ import { ApiBearerAuth } from '@nestjs/swagger';
 import { SessionIdDto } from '../dtos/sessionId.dto';
 import { RetrievalService } from 'src/projects/services/retrieval.service';
 import { ProjectsService } from 'src/projects/services/projects.service';
+import { interval, map, Observable } from 'rxjs';
 
 @Controller('chat')
-@UseGuards(JwtGuard)
+// @UseGuards(JwtGuard)
 @ApiBearerAuth()
 export class ChatController {
   constructor(
@@ -61,5 +63,13 @@ export class ChatController {
   @Delete(`history`)
   clearChatHistory(@User() userId: string, @Query() query: SessionIdDto) {
     return this.chatService.clearChatHistory(userId, query.sessionId);
+  }
+  @Sse(`stream`)
+  streamResponse() {
+    return interval(1000).pipe(
+      map((value) => ({
+        data: `message ${value}`,
+      })),
+    );
   }
 }
