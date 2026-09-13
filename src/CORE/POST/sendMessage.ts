@@ -115,6 +115,7 @@ export const sendRequest = async (
     if (!content) {
       throw new InternalServerErrorException('No content received from AI');
     }
+    //
     if (responseType === IncidentResponseType.STRUCTURED_JSON) {
       const parsedContent = chatResponseSchema.safeParse(JSON.parse(content));
       if (!parsedContent.success) {
